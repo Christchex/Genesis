@@ -67,7 +67,9 @@ public class Main extends SimpleApplication {
         inputManager.addMapping("Backward",new KeyTrigger(KeyInput.KEY_S));       
         inputManager.addMapping("LEFT",new KeyTrigger(KeyInput.KEY_A));
         inputManager.addMapping("RIGHT",new KeyTrigger(KeyInput.KEY_D));
-        inputManager.addListener(analogListener, new String[]{"Forward","Backward","LEFT", "RIGHT", "CLICK"});
+        inputManager.addMapping("UP", new KeyTrigger(KeyInput.KEY_E));
+        inputManager.addMapping("DOWN", new KeyTrigger(KeyInput.KEY_Q));
+        inputManager.addListener(analogListener, new String[]{"Forward","Backward","LEFT", "RIGHT", "CLICK", "UP", "DOWN"});
        
         
         
@@ -86,6 +88,12 @@ public class Main extends SimpleApplication {
                 }
                 if(name.contains("LEFT")){
                    cam.setLocation(cam.getLocation().add(speed * cam.getLeft().getX(),speed * cam.getLeft().getY(),speed * cam.getLeft().getZ()));
+                }
+                if(name.contains("UP")){
+                    cam.setLocation(cam.getLocation().add(speed * cam.getUp().getX(),speed * cam.getUp().getY(),speed * cam.getUp().getZ()));
+                }
+                if(name.contains("DOWN")){
+                    cam.setLocation(cam.getLocation().add(-speed * cam.getUp().getX(),-speed * cam.getUp().getY(),-speed * cam.getUp().getZ()));
                 }
                 if(name.contains("RIGHT")){
                     cam.setLocation(cam.getLocation().add(-speed * cam.getLeft().getX(),-speed * cam.getLeft().getY(),-speed * cam.getLeft().getZ()));
