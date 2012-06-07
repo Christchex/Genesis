@@ -112,7 +112,7 @@ public class Main extends SimpleApplication {
                     }
             }
         }
-    }
+    };
     private AnalogListener analogListener = new AnalogListener() {
         public void onAnalog(String name, float value, float tpf) {
             if(isRunning) {
