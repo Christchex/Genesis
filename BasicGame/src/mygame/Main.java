@@ -69,39 +69,14 @@ public class Main extends SimpleApplication {
         inputManager.addMapping("RIGHT",new KeyTrigger(KeyInput.KEY_D));
         inputManager.addMapping("UP", new KeyTrigger(KeyInput.KEY_E));
         inputManager.addMapping("DOWN", new KeyTrigger(KeyInput.KEY_Q));
-        inputManager.addListener(analogListener, new String[]{"Forward","Backward","LEFT", "RIGHT", "CLICK", "UP", "DOWN"});
-       
-        
-        
+        inputManager.addListener(analogListener, new String[]{"Forward","Backward","LEFT", "RIGHT", "UP", "DOWN"});
+        inputManager.addListener(actionListener, new String[]{"CLICK"});
     }
-    private AnalogListener analogListener = new AnalogListener() {
-        public void onAnalog(String name, float value, float tpf) {
-            if(isRunning) {
-                if(name.contains("Forward")) {
-                    cam.setLocation(cam.getLocation().add(speed * cam.getDirection().getX(),speed * cam.getDirection().getY(),speed * cam.getDirection().getZ()));
-                    
-                    
-                }
-                if(name.contains("Backward")){
-                    
-                    cam.setLocation(cam.getLocation().add(-speed * cam.getDirection().getX(),-speed * cam.getDirection().getY(),-speed * cam.getDirection().getZ()));
-                }
-                if(name.contains("LEFT")){
-                   cam.setLocation(cam.getLocation().add(speed * cam.getLeft().getX(),speed * cam.getLeft().getY(),speed * cam.getLeft().getZ()));
-                }
-                if(name.contains("UP")){
-                    cam.setLocation(cam.getLocation().add(speed * cam.getUp().getX(),speed * cam.getUp().getY(),speed * cam.getUp().getZ()));
-                }
-                if(name.contains("DOWN")){
-                    cam.setLocation(cam.getLocation().add(-speed * cam.getUp().getX(),-speed * cam.getUp().getY(),-speed * cam.getUp().getZ()));
-                }
-                if(name.contains("RIGHT")){
-                    cam.setLocation(cam.getLocation().add(-speed * cam.getLeft().getX(),-speed * cam.getLeft().getY(),-speed * cam.getLeft().getZ()));
-                }
-                
-                
-                if(name.contains("CLICK")){
-                    System.out.println("X:" + cam.getDirection().getX());
+    
+    private ActionListener actionListener = new ActionListener() {
+        public void onAction(String name, boolean keyPressed, float tpf) {
+            if(name.equals("CLICK") && !keyPressed) {
+                 System.out.println("X:" + cam.getDirection().getX());
                     System.out.println("Y:" + cam.getDirection().getY());
                     System.out.println("Z:" + cam.getDirection().getZ());
                     CollisionResults results = new CollisionResults();
@@ -135,6 +110,37 @@ public class Main extends SimpleApplication {
                             System.out.println(e.getMessage());
                         }
                     }
+            }
+        }
+    }
+    private AnalogListener analogListener = new AnalogListener() {
+        public void onAnalog(String name, float value, float tpf) {
+            if(isRunning) {
+                if(name.contains("Forward")) {
+                    cam.setLocation(cam.getLocation().add(speed * cam.getDirection().getX(),speed * cam.getDirection().getY(),speed * cam.getDirection().getZ()));
+                    
+                    
+                }
+                if(name.contains("Backward")){
+                    
+                    cam.setLocation(cam.getLocation().add(-speed * cam.getDirection().getX(),-speed * cam.getDirection().getY(),-speed * cam.getDirection().getZ()));
+                }
+                if(name.contains("LEFT")){
+                   cam.setLocation(cam.getLocation().add(speed * cam.getLeft().getX(),speed * cam.getLeft().getY(),speed * cam.getLeft().getZ()));
+                }
+                if(name.contains("UP")){
+                    cam.setLocation(cam.getLocation().add(speed * cam.getUp().getX(),speed * cam.getUp().getY(),speed * cam.getUp().getZ()));
+                }
+                if(name.contains("DOWN")){
+                    cam.setLocation(cam.getLocation().add(-speed * cam.getUp().getX(),-speed * cam.getUp().getY(),-speed * cam.getUp().getZ()));
+                }
+                if(name.contains("RIGHT")){
+                    cam.setLocation(cam.getLocation().add(-speed * cam.getLeft().getX(),-speed * cam.getLeft().getY(),-speed * cam.getLeft().getZ()));
+                }
+                
+                
+                if(name.contains("CLICK")){
+                   
                 }
             }
         }
