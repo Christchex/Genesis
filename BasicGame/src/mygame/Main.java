@@ -2,17 +2,17 @@ package mygame;
 
 import com.jme3.collision.CollisionResult;
 import com.jme3.input.controls.*;
-import com.jme3.*;
 import com.jme3.math.Ray;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.MouseButtonTrigger;
 import com.jme3.app.SimpleApplication;
+import com.jme3.bullet.BulletAppState;
+import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.collision.CollisionResults;
 import com.jme3.font.BitmapText;
 import com.jme3.input.MouseInput;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
-import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.scene.Geometry;
@@ -31,24 +31,23 @@ public class Main extends SimpleApplication {
         app.start();
     }
     protected Geometry player;
-    Geometry mark;
-    Boolean isRunning = true;
+    protected Geometry mark;
+    private Boolean isRunning = true;
     private float speed = .03f;
-    
+    private BulletAppState bulletAppState;
     
     
     @Override
     public void simpleInitApp() {
+        bulletAppState = new BulletAppState();
+        stateManager.attach(bulletAppState);
+        
         initKeys();
         initCrossHairs();
         initMark();
-        Box b = new Box(Vector3f.ZERO, 1, 1, 1);
-        player = new Geometry("Box", b);
-
-        Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        mat.setColor("Color", ColorRGBA.Blue);
-        player.setMaterial(mat);
+        initFloor();
         
+        player = makeCube("player", 0f, 0f, 0f, 1f);
         
         Node pivot = new Node("pivot");
         rootNode.attachChild(pivot);
@@ -68,7 +67,7 @@ public class Main extends SimpleApplication {
         inputManager.addMapping("LEFT",new KeyTrigger(KeyInput.KEY_A));
         inputManager.addMapping("RIGHT",new KeyTrigger(KeyInput.KEY_D));
         inputManager.addMapping("UP", new KeyTrigger(KeyInput.KEY_E));
-        inputManager.addMapping("DOWN", new KeyTrigger(KeyInput.KEY_Q));
+        inputManager.addMapping("DOWN", new KeyTrigger(KeyInput.KEY_Q));        
         inputManager.addListener(analogListener, new String[]{"Forward","Backward","LEFT", "RIGHT", "UP", "DOWN"});
         inputManager.addListener(actionListener, new String[]{"CLICK"});
     }
@@ -88,7 +87,7 @@ public class Main extends SimpleApplication {
                         Vector3f pt = results.getCollision(i).getContactPoint();
                         String hit = results.getCollision(i).getGeometry().getName();
                         System.out.println("* Collision #" + i);
-                        System.out.println(" You shot" + hit + "at" + pt + ", " + dist + "wu away.");
+                        System.out.println("You shot " + hit + "at " + pt + ", " + dist + " wu away.");
                               
                     }
                     if(results.size() > 0){
@@ -137,14 +136,23 @@ public class Main extends SimpleApplication {
                 if(name.contains("RIGHT")){
                     cam.setLocation(cam.getLocation().add(-speed * cam.getLeft().getX(),-speed * cam.getLeft().getY(),-speed * cam.getLeft().getZ()));
                 }
-                
-                
-                if(name.contains("CLICK")){
-                   
-                }
             }
         }
     };
+    
+    protected void initFloor() {
+        Box floor = new Box(Vector3f.ZERO, 10f, 0.5f, 10f);
+        Geometry floor_geo = new Geometry("floor", floor);
+        Material floor_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        floor_mat.setColor("Color", ColorRGBA.randomColor());
+        floor_geo.setMaterial(floor_mat);
+        this.rootNode.attachChild(floor_geo);
+        floor_geo.setLocalTranslation(0, -5f, 0);
+        RigidBodyControl floor_phy = new RigidBodyControl(0.0f); // floor mass is zero, therefore it doesn't move.
+        floor_geo.addControl(floor_phy);
+        bulletAppState.getPhysicsSpace().add(floor_phy);
+    }
+    
     @Override
     public void simpleUpdate(float tpf) {
         //TODO: add update code
@@ -152,12 +160,15 @@ public class Main extends SimpleApplication {
        
         
     }
-    protected Geometry makeCube(String name, float x, float y, float z){
+    protected Geometry makeCube(String name, float x, float y, float z, float mass){
         Box box = new Box(new Vector3f(x,y,z),1,1,1);
         Geometry cube = new Geometry(name, box);
         Material mat1 = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         mat1.setColor("Color", ColorRGBA.randomColor());
         cube.setMaterial(mat1);
+        RigidBodyControl box_phy = new RigidBodyControl(mass);
+        cube.addControl(box_phy);
+        bulletAppState.getPhysicsSpace().add(box_phy);
         return cube;
     }
     protected void initCrossHairs(){
