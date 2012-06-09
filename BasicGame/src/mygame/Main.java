@@ -35,7 +35,7 @@ public class Main extends SimpleApplication {
         app.start();
     }
     private CharacterControl player;
-    
+    protected Box floor;
     protected Geometry cube;
     protected Geometry mark;
     private Boolean isRunning = true;
@@ -86,8 +86,9 @@ public class Main extends SimpleApplication {
         inputManager.addMapping("UP", new KeyTrigger(KeyInput.KEY_E));
         inputManager.addMapping("DOWN", new KeyTrigger(KeyInput.KEY_Q));     
         inputManager.addMapping("JUMP", new KeyTrigger(KeyInput.KEY_SPACE));
+        inputManager.addMapping("RIGHT_CLICK", new MouseButtonTrigger(MouseInput.BUTTON_RIGHT));
         inputManager.addListener(actionListener, new String[]{"Forward","Backward","LEFT", "RIGHT", "UP", "DOWN", "JUMP"});
-        inputManager.addListener(actionListener, new String[]{"CLICK"});
+        inputManager.addListener(actionListener, new String[]{"CLICK", "RIGHT_CLICK"});
     }
     
     private ActionListener actionListener = new ActionListener() {
@@ -103,6 +104,31 @@ public class Main extends SimpleApplication {
             } else if (name.equals("JUMP")) {
                 player.jump();
                 System.out.println("JUMP!");
+            }
+            if(name.equals("RIGHT_CLICK") && !keyPressed){
+                CollisionResults results = new CollisionResults();
+                    Ray ray = new Ray(cam.getLocation(), cam.getDirection());
+                    rootNode.collideWith(ray, results);
+                    System.out.println("-----Collisions? " + results.size() + "----");
+                    for(int i = 0; i < results.size(); i++){
+                        float dist = results.getCollision(i).getDistance();
+                        Vector3f pt = results.getCollision(i).getContactPoint();
+                        String hit = results.getCollision(i).getGeometry().getName();
+                        System.out.println("* Collision #" + i);
+                        System.out.println("You shot " + hit + "at " + pt + ", " + dist + " wu away.");
+                              
+                    }
+                    if(results.size() > 0){
+                        try{
+                            if(results.getClosestCollision().getGeometry().getMesh() != floor){
+                            rootNode.detachChild(results.getClosestCollision().getGeometry());
+                            
+                            
+                    }
+                        }catch(Exception e){
+                            System.out.println(e.getMessage());
+                        }
+                    }
             }
             if(name.equals("CLICK") && !keyPressed) {
                  System.out.println("X:" + cam.getDirection().getX());
@@ -127,7 +153,11 @@ public class Main extends SimpleApplication {
                         CollisionResult closest = results.getClosestCollision();
                         mark.setLocalTranslation(closest.getContactPoint());
                         //rootNode.attachChild(mark);
-                        rootNode.attachChild(makeCube(name,closest.getContactPoint().getX(),closest.getContactPoint().getY(),closest.getContactPoint().getZ(), 0.3f));
+                        float tempY = closest.getContactPoint().getY();
+                        if(!(tempY > 5)){
+                            tempY =5;
+                        }
+                        rootNode.attachChild(makeCube(name,closest.getContactPoint().getX(),tempY,closest.getContactPoint().getZ(), 1f));
                        // rootNode.attachChild(makeCube(closest.getContactPoint()));
                         }catch(Exception e){
                             System.out.println(e.getMessage());
@@ -146,7 +176,7 @@ public class Main extends SimpleApplication {
    
     
     protected void initFloor() {
-        Box floor = new Box(Vector3f.ZERO, 10f, 0.5f, 10f);
+        floor = new Box(Vector3f.ZERO, 100f, 0.5f, 100f);
         Geometry floor_geo = new Geometry("floor", floor);
         Material floor_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         floor_mat.setColor("Color", ColorRGBA.randomColor());
@@ -160,8 +190,8 @@ public class Main extends SimpleApplication {
     
     @Override
     public void simpleUpdate(float tpf) {
-        Vector3f camDir = cam.getDirection().clone().multLocal(0.6f);
-        Vector3f camLeft = cam.getLeft().clone().multLocal(0.4f);
+        Vector3f camDir = cam.getDirection().clone().multLocal(0.4f).setY(0.0f);
+        Vector3f camLeft = cam.getLeft().clone().multLocal(0.3f).setY(0.0f);
         walkDirection.set(0, 0, 0);
         if (left)  { walkDirection.addLocal(camLeft); }
         if (right) { walkDirection.addLocal(camLeft.negate()); }
