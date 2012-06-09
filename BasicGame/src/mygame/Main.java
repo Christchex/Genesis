@@ -7,10 +7,14 @@ import com.jme3.input.KeyInput;
 import com.jme3.input.controls.MouseButtonTrigger;
 import com.jme3.app.SimpleApplication;
 import com.jme3.bullet.BulletAppState;
+import com.jme3.bullet.collision.shapes.CapsuleCollisionShape;
+import com.jme3.bullet.control.CharacterControl;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.collision.CollisionResults;
 import com.jme3.font.BitmapText;
 import com.jme3.input.MouseInput;
+import com.jme3.light.AmbientLight;
+import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
@@ -30,32 +34,45 @@ public class Main extends SimpleApplication {
         Main app = new Main();
         app.start();
     }
-    protected Geometry player;
+    private CharacterControl player;
+    
+    protected Geometry cube;
     protected Geometry mark;
     private Boolean isRunning = true;
     private float speed = .03f;
     private BulletAppState bulletAppState;
-    
+    private Vector3f walkDirection = new Vector3f();
+    private boolean left = false, right = false, up = false, down = false;
     
     @Override
     public void simpleInitApp() {
         bulletAppState = new BulletAppState();
+        
         stateManager.attach(bulletAppState);
         
+        
+        viewPort.setBackgroundColor(new ColorRGBA(0.7f,0.8f,1f,1f));
+        flyCam.setMoveSpeed(100);
         initKeys();
         initCrossHairs();
         initMark();
         initFloor();
-        
-        player = makeCube("player", 0f, 0f, 0f, 1f);
-        
+        setUpLight();
+        CapsuleCollisionShape capsuleShape = new CapsuleCollisionShape(1.5f, 6f, 1);
+        player = new CharacterControl(capsuleShape, 0.05f);
+        player.setJumpSpeed(20);
+        player.setFallSpeed(30);
+        player.setGravity(30);
+        player.setPhysicsLocation(new Vector3f(0,10,0));
+        cube = makeCube("cube", 0f, 0f, 0f, 1f);
+        bulletAppState.getPhysicsSpace().add(player);
         Node pivot = new Node("pivot");
         rootNode.attachChild(pivot);
         
-        pivot.attachChild(player);
+        pivot.attachChild(cube);
         pivot.rotate(.4f,.4f,0f);
         
-        rootNode.attachChild(player);
+        rootNode.attachChild(cube);
         
     }
     
@@ -67,13 +84,26 @@ public class Main extends SimpleApplication {
         inputManager.addMapping("LEFT",new KeyTrigger(KeyInput.KEY_A));
         inputManager.addMapping("RIGHT",new KeyTrigger(KeyInput.KEY_D));
         inputManager.addMapping("UP", new KeyTrigger(KeyInput.KEY_E));
-        inputManager.addMapping("DOWN", new KeyTrigger(KeyInput.KEY_Q));        
-        inputManager.addListener(analogListener, new String[]{"Forward","Backward","LEFT", "RIGHT", "UP", "DOWN"});
+        inputManager.addMapping("DOWN", new KeyTrigger(KeyInput.KEY_Q));     
+        inputManager.addMapping("JUMP", new KeyTrigger(KeyInput.KEY_SPACE));
+        inputManager.addListener(actionListener, new String[]{"Forward","Backward","LEFT", "RIGHT", "UP", "DOWN", "JUMP"});
         inputManager.addListener(actionListener, new String[]{"CLICK"});
     }
     
     private ActionListener actionListener = new ActionListener() {
         public void onAction(String name, boolean keyPressed, float tpf) {
+            if (name.equals("LEFT")) {
+                left = keyPressed;
+            } else if (name.equals("RIGHT")) {
+                right = keyPressed;
+            } else if (name.equals("Forward")) {
+                up = keyPressed;
+            } else if (name.equals("Backward")) {
+                down = keyPressed;
+            } else if (name.equals("JUMP")) {
+                player.jump();
+                System.out.println("JUMP!");
+            }
             if(name.equals("CLICK") && !keyPressed) {
                  System.out.println("X:" + cam.getDirection().getX());
                     System.out.println("Y:" + cam.getDirection().getY());
@@ -96,7 +126,8 @@ public class Main extends SimpleApplication {
                         
                         CollisionResult closest = results.getClosestCollision();
                         mark.setLocalTranslation(closest.getContactPoint());
-                        rootNode.attachChild(mark);
+                        //rootNode.attachChild(mark);
+                        rootNode.attachChild(makeCube(name,closest.getContactPoint().getX(),closest.getContactPoint().getY(),closest.getContactPoint().getZ(), 0.3f));
                        // rootNode.attachChild(makeCube(closest.getContactPoint()));
                         }catch(Exception e){
                             System.out.println(e.getMessage());
@@ -112,33 +143,7 @@ public class Main extends SimpleApplication {
             }
         }
     };
-    private AnalogListener analogListener = new AnalogListener() {
-        public void onAnalog(String name, float value, float tpf) {
-            if(isRunning) {
-                if(name.contains("Forward")) {
-                    cam.setLocation(cam.getLocation().add(speed * cam.getDirection().getX(),speed * cam.getDirection().getY(),speed * cam.getDirection().getZ()));
-                    
-                    
-                }
-                if(name.contains("Backward")){
-                    
-                    cam.setLocation(cam.getLocation().add(-speed * cam.getDirection().getX(),-speed * cam.getDirection().getY(),-speed * cam.getDirection().getZ()));
-                }
-                if(name.contains("LEFT")){
-                   cam.setLocation(cam.getLocation().add(speed * cam.getLeft().getX(),speed * cam.getLeft().getY(),speed * cam.getLeft().getZ()));
-                }
-                if(name.contains("UP")){
-                    cam.setLocation(cam.getLocation().add(speed * cam.getUp().getX(),speed * cam.getUp().getY(),speed * cam.getUp().getZ()));
-                }
-                if(name.contains("DOWN")){
-                    cam.setLocation(cam.getLocation().add(-speed * cam.getUp().getX(),-speed * cam.getUp().getY(),-speed * cam.getUp().getZ()));
-                }
-                if(name.contains("RIGHT")){
-                    cam.setLocation(cam.getLocation().add(-speed * cam.getLeft().getX(),-speed * cam.getLeft().getY(),-speed * cam.getLeft().getZ()));
-                }
-            }
-        }
-    };
+   
     
     protected void initFloor() {
         Box floor = new Box(Vector3f.ZERO, 10f, 0.5f, 10f);
@@ -155,8 +160,15 @@ public class Main extends SimpleApplication {
     
     @Override
     public void simpleUpdate(float tpf) {
-        //TODO: add update code
-        
+        Vector3f camDir = cam.getDirection().clone().multLocal(0.6f);
+        Vector3f camLeft = cam.getLeft().clone().multLocal(0.4f);
+        walkDirection.set(0, 0, 0);
+        if (left)  { walkDirection.addLocal(camLeft); }
+        if (right) { walkDirection.addLocal(camLeft.negate()); }
+        if (up)    { walkDirection.addLocal(camDir); }
+        if (down)  { walkDirection.addLocal(camDir.negate()); }
+        player.setWalkDirection(walkDirection);
+        cam.setLocation(player.getPhysicsLocation());
        
         
     }
@@ -181,6 +193,9 @@ public class Main extends SimpleApplication {
                 settings.getHeight() / 2 + ch.getLineHeight() / 2, 0);
         guiNode.attachChild(ch);
     }
+    protected void initcube(){
+        
+    }
     protected void initMark() {
         Sphere sphere = new Sphere(30, 30, 0.2f);
         mark = new Geometry("BOOM!", sphere);
@@ -191,5 +206,16 @@ public class Main extends SimpleApplication {
     @Override
     public void simpleRender(RenderManager rm) {
         //TODO: add render code
+    }
+
+    private void setUpLight() {
+        AmbientLight al = new AmbientLight();
+        al.setColor(ColorRGBA.White.mult(1.3f));
+        rootNode.addLight(al);
+        
+        DirectionalLight dl = new DirectionalLight();
+        dl.setColor(ColorRGBA.White);
+        dl.setDirection(new Vector3f(2.8f,-2.8f,-2.8f).normalizeLocal());
+        rootNode.addLight(dl);
     }
 }
