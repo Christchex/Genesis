@@ -7,6 +7,7 @@ import com.jme3.input.KeyInput;
 import com.jme3.input.controls.MouseButtonTrigger;
 import com.jme3.app.SimpleApplication;
 import com.jme3.bullet.BulletAppState;
+import com.jme3.bullet.collision.PhysicsCollisionListener;
 import com.jme3.bullet.collision.shapes.CapsuleCollisionShape;
 import com.jme3.bullet.control.CharacterControl;
 import com.jme3.bullet.control.RigidBodyControl;
@@ -22,11 +23,15 @@ import com.jme3.renderer.RenderManager;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.Node;
+import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Sphere;
+import com.jme3.shadow.BasicShadowRenderer;
+import com.jme3.shadow.PssmShadowRenderer;
 
 /**
- * test
- * @author normenhansen
+ * @
+ * @version 0.1.3
+ * @author Chris
  */
 public class Main extends SimpleApplication {
 
@@ -34,6 +39,8 @@ public class Main extends SimpleApplication {
         Main app = new Main();
         app.start();
     }
+    PssmShadowRenderer psm;
+    BasicShadowRenderer bsr;
     private CharacterControl player;
     protected Box floor;
     private Boolean debugEnabled = false;
@@ -48,10 +55,16 @@ public class Main extends SimpleApplication {
     @Override
     public void simpleInitApp() {
         bulletAppState = new BulletAppState();
-        
+        bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
         stateManager.attach(bulletAppState);
         
+        Spatial model = assetManager.loadModel("Scenes/basicTerrain.j3o");
+        rootNode.attachChild(model);
         
+        RigidBodyControl terrain_geo = new RigidBodyControl(0.0f);
+        model.addControl(terrain_geo);
+        
+        bulletAppState.getPhysicsSpace().add(terrain_geo);
         viewPort.setBackgroundColor(new ColorRGBA(0.7f,0.8f,1f,1f));
         flyCam.setMoveSpeed(100);
         initKeys();
@@ -64,7 +77,14 @@ public class Main extends SimpleApplication {
         player.setJumpSpeed(20);
         player.setFallSpeed(30);
         player.setGravity(40);
-        player.setPhysicsLocation(new Vector3f(0,10,0));
+        player.setPhysicsLocation(new Vector3f(0,15,0));
+        
+        psm = new PssmShadowRenderer(assetManager, 1024, 3);
+        psm.setDirection(new Vector3f(-.5f, -.5f, -.5f).normalizeLocal());
+        
+        //bsr = new BasicShadowRenderer(assetManager, 256);
+        //bsr.setDirection(new Vector3f(-.5f, -.5f, -.5f).normalizeLocal());
+        viewPort.addProcessor(psm);
         
         bulletAppState.getPhysicsSpace().add(player);
         bulletAppState.getPhysicsSpace().setGravity(new Vector3f(0, -9.81f, 0));
@@ -73,7 +93,9 @@ public class Main extends SimpleApplication {
         
     }
     
-    
+    /**
+     * 
+     */
     private void initKeys(){
         inputManager.addMapping("Forward", new KeyTrigger(KeyInput.KEY_W));
         inputManager.addMapping("CLICK", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
@@ -88,6 +110,8 @@ public class Main extends SimpleApplication {
         inputManager.addListener(actionListener, new String[]{"Forward","Backward","DEBUG","LEFT", "RIGHT", "UP", "DOWN", "JUMP"});
         inputManager.addListener(actionListener, new String[]{"CLICK", "RIGHT_CLICK"});
     }
+   
+        
     
     private ActionListener actionListener = new ActionListener() {
         public void onAction(String name, boolean keyPressed, float tpf) {
@@ -166,7 +190,7 @@ public class Main extends SimpleApplication {
                         /*if(!(tempY > 0)){
                             tempY =0;
                         }*/
-                        makeCube(name,closest.getContactPoint().getX(),tempY,closest.getContactPoint().getZ(), 1f);
+                        makeCube(name,closest.getContactPoint().getX(),tempY,closest.getContactPoint().getZ(), 0.5f);
                        // rootNode.attachChild(makeCube(closest.getContactPoint()));
                         }catch(Exception e){
                             System.out.println(e.getMessage());
@@ -187,8 +211,8 @@ public class Main extends SimpleApplication {
     protected void initFloor() {
         floor = new Box(Vector3f.ZERO, 100f, 0.5f, 100f);
         Geometry floor_geo = new Geometry("floor", floor);
-        Material floor_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        floor_mat.setColor("Color", ColorRGBA.randomColor());
+        Material floor_mat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+        floor_mat.setColor("GlowColor", ColorRGBA.randomColor());
         floor_geo.setMaterial(floor_mat);
         this.rootNode.attachChild(floor_geo);
         floor_geo.setLocalTranslation(0, -5f, 0);
@@ -220,8 +244,8 @@ public class Main extends SimpleApplication {
     protected void makeCube(String name, float x, float y, float z, float mass){
         Box box = new Box(Vector3f.ZERO,1,1,1);
         Geometry cube = new Geometry(name, box);
-        Material mat1 = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        mat1.setColor("Color", ColorRGBA.randomColor());
+        Material mat1 = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+        mat1.setColor("GlowColor", ColorRGBA.randomColor());
         cube.setMaterial(mat1);
         RigidBodyControl box_phy = new RigidBodyControl(mass);
         cube.addControl(box_phy);
