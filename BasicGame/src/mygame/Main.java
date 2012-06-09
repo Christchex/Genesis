@@ -36,7 +36,8 @@ public class Main extends SimpleApplication {
     }
     private CharacterControl player;
     protected Box floor;
-    protected Geometry cube;
+    private Boolean debugEnabled = false;
+    protected Geometry bob;
     protected Geometry mark;
     private Boolean isRunning = true;
     private float speed = .03f;
@@ -62,17 +63,13 @@ public class Main extends SimpleApplication {
         player = new CharacterControl(capsuleShape, 0.05f);
         player.setJumpSpeed(20);
         player.setFallSpeed(30);
-        player.setGravity(30);
+        player.setGravity(40);
         player.setPhysicsLocation(new Vector3f(0,10,0));
-        cube = makeCube("cube", 0f, 0f, 0f, 1f);
+        
         bulletAppState.getPhysicsSpace().add(player);
-        Node pivot = new Node("pivot");
-        rootNode.attachChild(pivot);
+        bulletAppState.getPhysicsSpace().setGravity(new Vector3f(0, -9.81f, 0));
+       
         
-        pivot.attachChild(cube);
-        pivot.rotate(.4f,.4f,0f);
-        
-        rootNode.attachChild(cube);
         
     }
     
@@ -86,8 +83,9 @@ public class Main extends SimpleApplication {
         inputManager.addMapping("UP", new KeyTrigger(KeyInput.KEY_E));
         inputManager.addMapping("DOWN", new KeyTrigger(KeyInput.KEY_Q));     
         inputManager.addMapping("JUMP", new KeyTrigger(KeyInput.KEY_SPACE));
+        inputManager.addMapping("DEBUG", new KeyTrigger(KeyInput.KEY_TAB));
         inputManager.addMapping("RIGHT_CLICK", new MouseButtonTrigger(MouseInput.BUTTON_RIGHT));
-        inputManager.addListener(actionListener, new String[]{"Forward","Backward","LEFT", "RIGHT", "UP", "DOWN", "JUMP"});
+        inputManager.addListener(actionListener, new String[]{"Forward","Backward","DEBUG","LEFT", "RIGHT", "UP", "DOWN", "JUMP"});
         inputManager.addListener(actionListener, new String[]{"CLICK", "RIGHT_CLICK"});
     }
     
@@ -103,7 +101,18 @@ public class Main extends SimpleApplication {
                 down = keyPressed;
             } else if (name.equals("JUMP")) {
                 player.jump();
-                System.out.println("JUMP!");
+                
+            }
+            else if(name.equals("DEBUG")){
+                if(debugEnabled == false && keyPressed){
+                    
+                    bulletAppState.getPhysicsSpace().enableDebug(assetManager);
+                    debugEnabled=true;
+                }else if(debugEnabled == true && keyPressed){
+                    bulletAppState.getPhysicsSpace().disableDebug();
+                    debugEnabled = false;
+                }
+                
             }
             if(name.equals("RIGHT_CLICK") && !keyPressed){
                 CollisionResults results = new CollisionResults();
@@ -154,10 +163,10 @@ public class Main extends SimpleApplication {
                         mark.setLocalTranslation(closest.getContactPoint());
                         //rootNode.attachChild(mark);
                         float tempY = closest.getContactPoint().getY();
-                        if(!(tempY > 5)){
-                            tempY =5;
-                        }
-                        rootNode.attachChild(makeCube(name,closest.getContactPoint().getX(),tempY,closest.getContactPoint().getZ(), 1f));
+                        /*if(!(tempY > 0)){
+                            tempY =0;
+                        }*/
+                        makeCube(name,closest.getContactPoint().getX(),tempY,closest.getContactPoint().getZ(), 1f);
                        // rootNode.attachChild(makeCube(closest.getContactPoint()));
                         }catch(Exception e){
                             System.out.println(e.getMessage());
@@ -187,6 +196,9 @@ public class Main extends SimpleApplication {
         floor_geo.addControl(floor_phy);
         bulletAppState.getPhysicsSpace().add(floor_phy);
     }
+    protected void pickup(Geometry geom){
+        
+    }
     
     @Override
     public void simpleUpdate(float tpf) {
@@ -198,27 +210,32 @@ public class Main extends SimpleApplication {
         if (up)    { walkDirection.addLocal(camDir); }
         if (down)  { walkDirection.addLocal(camDir.negate()); }
         player.setWalkDirection(walkDirection);
+        
         cam.setLocation(player.getPhysicsLocation());
        
         
     }
-    protected Geometry makeCube(String name, float x, float y, float z, float mass){
-        Box box = new Box(new Vector3f(x,y,z),1,1,1);
+    
+    
+    protected void makeCube(String name, float x, float y, float z, float mass){
+        Box box = new Box(Vector3f.ZERO,1,1,1);
         Geometry cube = new Geometry(name, box);
         Material mat1 = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         mat1.setColor("Color", ColorRGBA.randomColor());
         cube.setMaterial(mat1);
         RigidBodyControl box_phy = new RigidBodyControl(mass);
         cube.addControl(box_phy);
+        cube.setLocalTranslation(x,y,z);
         bulletAppState.getPhysicsSpace().add(box_phy);
-        return cube;
+        box_phy.setPhysicsLocation(cube.getLocalTranslation());
+        rootNode.attachChild(cube);
     }
     protected void initCrossHairs(){
         guiNode.detachAllChildren();
         guiFont = assetManager.loadFont("Interface/Fonts/Default.fnt");
         BitmapText ch = new BitmapText(guiFont, false);
         ch.setSize(guiFont.getCharSet().getRenderedSize() * 2);
-        ch.setText("+");
+        ch.setText("( - )");
         ch.setLocalTranslation(settings.getWidth() / 2 - guiFont.getCharSet().getRenderedSize() / 3 * 2,
                 settings.getHeight() / 2 + ch.getLineHeight() / 2, 0);
         guiNode.attachChild(ch);
