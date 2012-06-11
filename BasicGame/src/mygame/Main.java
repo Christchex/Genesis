@@ -70,7 +70,7 @@ public class Main extends SimpleApplication {
         initKeys();
         initCrossHairs();
         initMark();
-        initFloor();
+        //initFloor();
         setUpLight();
         CapsuleCollisionShape capsuleShape = new CapsuleCollisionShape(1.5f, 6f, 1);
         player = new CharacterControl(capsuleShape, 0.05f);
